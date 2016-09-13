@@ -13,20 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef _STM32_CLOCK_CONTROL_H_
-#define _STM32_CLOCK_CONTROL_H_
 
-#include <clock_control.h>
+#ifndef _STM32L4X6_PINMUX_H_
+#define _STM32L4X6_PINMUX_H_
 
-/* common clock control device name for all STM32 chips */
-#define STM32_CLOCK_CONTROL_NAME "stm32-cc"
+/**
+ * @file Header for STM32L4X6 pin multiplexing helper
+ */
 
-#ifdef CONFIG_SOC_SERIES_STM32F1X
-#include "stm32f1_clock_control.h"
-#endif
+#define STM32L4X6_PINMUX_FUNC_PA9_USART1_TX STM32_PINMUX_FUNC_ALT_7
+#define STM32L4X6_PINMUX_FUNC_PA10_USART1_RX STM32_PINMUX_FUNC_ALT_7
 
-#ifdef CONFIG_SOC_SERIES_STM32L4X
-#include "stm32l4x6_clock_control.h"
-#endif
+#define STM32L4X6_PINMUX_FUNC_PA2_USART2_TX STM32_PINMUX_FUNC_ALT_7
+#define STM32L4X6_PINMUX_FUNC_PA3_USART2_RX STM32_PINMUX_FUNC_ALT_7
 
-#endif /* _STM32_CLOCK_CONTROL_H_ */
+#define STM32L4X6_PINMUX_FUNC_PB10_USART3_TX STM32_PINMUX_FUNC_ALT_7
+#define STM32L4X6_PINMUX_FUNC_PB11_USART3_RX STM32_PINMUX_FUNC_ALT_7
+
+
+#endif /* _STM32L4X6_PINMUX_H_ */

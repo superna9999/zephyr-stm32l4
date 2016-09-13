@@ -13,20 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef _STM32_CLOCK_CONTROL_H_
-#define _STM32_CLOCK_CONTROL_H_
 
-#include <clock_control.h>
+#ifndef _STM32L4X6_SOC_REGISTERS_H_
+#define _STM32L4X6_SOC_REGISTERS_H_
 
-/* common clock control device name for all STM32 chips */
-#define STM32_CLOCK_CONTROL_NAME "stm32-cc"
+/* include register mapping headers */
+#include "rcc_registers.h"
+#include "gpio_registers.h"
+#include "flash_registers.h"
 
-#ifdef CONFIG_SOC_SERIES_STM32F1X
-#include "stm32f1_clock_control.h"
-#endif
-
-#ifdef CONFIG_SOC_SERIES_STM32L4X
-#include "stm32l4x6_clock_control.h"
-#endif
-
-#endif /* _STM32_CLOCK_CONTROL_H_ */
+#endif /* _STM32L4X6_SOC_REGISTERS_H_ */

@@ -13,20 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef _STM32_CLOCK_CONTROL_H_
-#define _STM32_CLOCK_CONTROL_H_
 
-#include <clock_control.h>
+#ifndef _STM32L4X6_GPIO_REGISTERS_H_
+#define _STM32L4X6_GPIO_REGISTERS_H_
 
-/* common clock control device name for all STM32 chips */
-#define STM32_CLOCK_CONTROL_NAME "stm32-cc"
+/* 9.2 GPIO registers - each GPIO port controls 16 pins */
+struct stm32l4x6_gpio {
+	uint32_t moder;
+	uint32_t otyper;
+	uint32_t ospeedr;
+	uint32_t pupdr;
+	uint32_t idr;
+	uint32_t odr;
+	uint32_t bsrr;
+	uint32_t lckr;
+	uint32_t afr[2];
+	uint32_t brr;
+	uint32_t ascr;
+};
 
-#ifdef CONFIG_SOC_SERIES_STM32F1X
-#include "stm32f1_clock_control.h"
-#endif
-
-#ifdef CONFIG_SOC_SERIES_STM32L4X
-#include "stm32l4x6_clock_control.h"
-#endif
-
-#endif /* _STM32_CLOCK_CONTROL_H_ */
+#endif /* _STM32L4X6_GPIO_REGISTERS_H_ */
