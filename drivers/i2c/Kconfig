@@ -74,6 +74,13 @@ config I2C_ATMEL_SAM3
 	Says y to enable additional options to enable support
 	for individual controllers.
 
+config I2C_STM32LX
+	bool "STM32Lx MCU I2C Driver"
+	depends on I2C &&  SOC_FAMILY_STM32 && SOC_SERIES_STM32L4X
+	default n
+	help
+	Enable I2C support on the STM32Lxx family of processors.
+
 config I2C_INIT_PRIORITY
 	int
 	depends on I2C

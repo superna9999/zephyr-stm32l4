@@ -45,6 +45,11 @@
 #define UART5_ADDR            (APB1PERIPH_BASE + 0x5000)
 #define LPUART1_ADDR          (APB1PERIPH_BASE + 0x8000)
 
+/* I2C */
+#define I2C1_ADDR	      (APB1PERIPH_BASE + 0x5400)
+#define I2C2_ADDR	      (APB1PERIPH_BASE + 0x5800)
+#define I2C3_ADDR	      (APB1PERIPH_BASE + 0x5C00)
+
 /* Reset and Clock Control */
 #define RCC_BASE              (AHB1PERIPH_BASE + 0x1000)
 
