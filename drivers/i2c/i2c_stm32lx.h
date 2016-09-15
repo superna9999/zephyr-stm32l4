@@ -37,8 +37,8 @@ union __cr1 {
 		uint32_t sbc :1 __packed;
 		uint32_t nostretch :1 __packed;
 		uint32_t wupen :1 __packed;
-		uint32_t gcen :5 __packed;
-		uint32_t smbhen :5 __packed;
+		uint32_t gcen :1 __packed;
+		uint32_t smbhen :1 __packed;
 		uint32_t smbden :1 __packed;
 		uint32_t alerten :1 __packed;
 		uint32_t pecen :1 __packed;
@@ -61,7 +61,7 @@ union __cr2 {
 		uint32_t reload :1 __packed;
 		uint32_t autoend :1 __packed;
 		uint32_t pecbyte :1 __packed;
-		uint32_t rsvd__27_31 :1 __packed;
+		uint32_t rsvd__27_31 :5 __packed;
 	} bit;
 };
 
@@ -184,7 +184,7 @@ struct i2c_stm32lx {
 	union __icr icr;
 	union __pecr pecr;
 	union __dr rxdr;
-	union __dr txdr;
+	uint32_t txdr;
 };
 
 typedef void (*irq_config_func_t)(struct device *port);

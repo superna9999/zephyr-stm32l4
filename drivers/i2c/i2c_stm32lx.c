@@ -32,7 +32,7 @@
 
 /* convenience defines */
 #define DEV_CFG(dev)							\
-	((struct i2c_stm32lx_config * const)(dev)->config)
+	((struct i2c_stm32lx_config * const)(dev)->config->config_info)
 #define DEV_DATA(dev)							\
 	((struct i2c_stm32lx_data * const)(dev)->driver_data)
 #define I2C_STRUCT(dev)							\
@@ -75,7 +75,7 @@ static int i2c_stm32lx_runtime_configure(struct device *dev, uint32_t config)
 	default:
 		return -EINVAL;
 	}
-
+		
 	/* Calculate period until prescaler matches */
 	do {
 		uint32_t t_presc = clock / presc;
@@ -93,11 +93,11 @@ static int i2c_stm32lx_runtime_configure(struct device *dev, uint32_t config)
 			continue;
 		}
 
-		i2c->timingr.bit.presc = presc;
-		i2c->timingr.bit.scldel = scldel;
+		i2c->timingr.bit.presc = presc-1;
+		i2c->timingr.bit.scldel = scldel-1;
 		i2c->timingr.bit.sdadel = sdadel;
-		i2c->timingr.bit.sclh = sclh;
-		i2c->timingr.bit.scll = scll;
+		i2c->timingr.bit.sclh = sclh-1;
+		i2c->timingr.bit.scll = scll-1;
 
 		break;
 	} while(presc < 16);
@@ -127,7 +127,6 @@ static inline void transfer_setup(struct device *dev, uint16_t slave_address,
 {
 	volatile struct i2c_stm32lx *i2c = I2C_STRUCT(dev);
 	struct i2c_stm32lx_data *data = DEV_DATA(dev);
-	//struct i2c_stm32lx_config *cfg = DEV_CFG(dev);
 
 	if (data->dev_config.bits.use_10_bit_addr) {
 		i2c->cr2.bit.add10 = 1;
@@ -143,8 +142,6 @@ static inline int msg_write(struct device *dev, struct i2c_msg *msg,
 			   unsigned flags)
 {
 	volatile struct i2c_stm32lx *i2c = I2C_STRUCT(dev);
-	//struct i2c_stm32lx_data *data = DEV_DATA(dev);
-	//struct i2c_stm32lx_config *cfg = DEV_CFG(dev);
 	unsigned len = msg->len;
 	uint8_t *buf = msg->buf;
 
@@ -161,16 +158,29 @@ static inline int msg_write(struct device *dev, struct i2c_msg *msg,
 	i2c->cr2.bit.reload = 0;
 	i2c->cr2.bit.start = 1;
 
+	while (i2c->cr2.bit.start);
+
 	while (len) {
-		while (!i2c->isr.bit.nackf && !i2c->isr.bit.txis);
+		do {
+			if (i2c->isr.bit.txis)
+				break;
 
-		if (i2c->isr.bit.nackf)
-			return -EIO;
+			if (i2c->isr.bit.nackf) {
+				i2c->icr.bit.nack = 1;
+				printk("NACK\n");
+				return -EIO;
+			}
+		} while (1);
 
-		i2c->txdr.bit.data = *buf;
+		i2c->txdr = *buf;
 
 		buf++;
 		len--;
+	}
+
+	if ((flags & I2C_MSG_RESTART) == 0) {
+		while (!i2c->isr.bit.stopf);
+		i2c->icr.bit.stop = 1;
 	}
 
 	return 0;
@@ -180,8 +190,6 @@ static inline int msg_read(struct device *dev, struct i2c_msg *msg,
 			   unsigned flags)
 {
 	volatile struct i2c_stm32lx *i2c = I2C_STRUCT(dev);
-	//struct i2c_stm32lx_data *data = DEV_DATA(dev);
-	//struct i2c_stm32lx_config *cfg = DEV_CFG(dev);
 	unsigned len = msg->len;
 	uint8_t *buf = msg->buf;
 
@@ -207,6 +215,11 @@ static inline int msg_read(struct device *dev, struct i2c_msg *msg,
 		len--;
 	}
 
+	if ((flags & I2C_MSG_RESTART) == 0) {
+		while (!i2c->isr.bit.stopf);
+		i2c->icr.bit.stop = 1;
+	}
+
 	return 0;
 }
 
@@ -215,8 +228,6 @@ static int i2c_stm32lx_transfer(struct device *dev,
 			     uint16_t slave_address)
 {
 	volatile struct i2c_stm32lx *i2c = I2C_STRUCT(dev);
-	//struct i2c_stm32lx_data *data = DEV_DATA(dev);
-	//struct i2c_stm32lx_config *cfg = DEV_CFG(dev);
 	struct i2c_msg *cur_msg = msgs;
 	uint8_t msg_left = num_msgs;
 	int ret = 0;
