@@ -110,17 +110,66 @@ static int i2c_stm32lx_runtime_configure(struct device *dev, uint32_t config)
 	return 0;
 }
 
-static void i2c_stm32lx_isr(void *arg)
+#ifdef CONFIG_I2C_STM32LX_INTERRUPT
+static void i2c_stm32lx_ev_isr(void *arg)
 {
-	/*
 	struct device * const dev = (struct device *)arg;
 	volatile struct i2c_stm32lx *i2c = I2C_STRUCT(dev);
 	struct i2c_stm32lx_data *data = DEV_DATA(dev);
-	struct i2c_stm32lx_config *cfg = DEV_CFG(dev);
-	*/
 
-	/* NOP */
+	if (data->current.is_write) {
+		if (data->current.len && i2c->isr.bit.txis) {
+			i2c->txdr = *data->current.buf;
+			data->current.buf++;
+			data->current.len--;
+
+			if (!data->current.len)
+				device_sync_call_complete(&data->sync);
+		} else {
+			/* Impossible situation */
+			data->current.is_err = 1;
+			i2c->cr1.bit.txie = 0;
+
+			device_sync_call_complete(&data->sync);
+		}
+	} else {
+		if (data->current.len && i2c->isr.bit.rxne) {
+			*data->current.buf = i2c->rxdr.bit.data;
+			data->current.buf++;
+			data->current.len--;
+
+			if (!data->current.len)
+				device_sync_call_complete(&data->sync);
+		} else {
+			/* Impossible situation */
+			data->current.is_err = 1;
+			i2c->cr1.bit.rxie = 0;
+
+			device_sync_call_complete(&data->sync);
+		}
+	}
 }
+
+static void i2c_stm32lx_er_isr(void *arg)
+{
+	struct device * const dev = (struct device *)arg;
+	volatile struct i2c_stm32lx *i2c = I2C_STRUCT(dev);
+	struct i2c_stm32lx_data *data = DEV_DATA(dev);
+
+	if (i2c->isr.bit.nackf) {
+		i2c->icr.bit.nack = 1;
+
+		data->current.is_nack = 1;
+
+		device_sync_call_complete(&data->sync);
+	} else {
+		/* Unknown Error */
+		data->current.is_err = 1;
+
+		device_sync_call_complete(&data->sync);
+	}
+}
+#endif
 
 static inline void transfer_setup(struct device *dev, uint16_t slave_address,
 				  unsigned read_transfer)
@@ -142,11 +191,22 @@ static inline int msg_write(struct device *dev, struct i2c_msg *msg,
 			   unsigned flags)
 {
 	volatile struct i2c_stm32lx *i2c = I2C_STRUCT(dev);
+#ifdef CONFIG_I2C_STM32LX_INTERRUPT
+	struct i2c_stm32lx_data *data = DEV_DATA(dev);
+#endif
 	unsigned len = msg->len;
 	uint8_t *buf = msg->buf;
 
 	if (len > 255)
 		return -EINVAL;
+
+#ifdef CONFIG_I2C_STM32LX_INTERRUPT
+	data->current.len = len;
+	data->current.buf = buf;
+	data->current.is_nack = 0;
+	data->current.is_err = 0;
+	data->current.is_write = 1;
+#endif
 
 	i2c->cr2.bit.nbytes = len;
 
@@ -160,6 +220,25 @@ static inline int msg_write(struct device *dev, struct i2c_msg *msg,
 
 	while (i2c->cr2.bit.start);
 
+#ifdef CONFIG_I2C_STM32LX_INTERRUPT
+	i2c->cr1.bit.txie = 1;
+	i2c->cr1.bit.nackie = 1;
+
+	device_sync_call_wait(&data->sync);
+
+	if (data->current.is_nack || data->current.is_err) {
+		i2c->cr1.bit.txie = 0;
+		i2c->cr1.bit.nackie = 0;
+		if (data->current.is_nack)
+			SYS_LOG_DBG("%s: NACK", __func__);
+		if (data->current.is_err)
+			SYS_LOG_DBG("%s: ERR %d", __func__, 
+				    data->current.is_err);
+		data->current.is_nack = 0;
+		data->current.is_err = 0;
+		return -EIO;
+	}
+#else
 	while (len) {
 		do {
 			if (i2c->isr.bit.txis)
@@ -167,7 +246,7 @@ static inline int msg_write(struct device *dev, struct i2c_msg *msg,
 
 			if (i2c->isr.bit.nackf) {
 				i2c->icr.bit.nack = 1;
-				printk("NACK\n");
+				SYS_LOG_DBG("%s: NACK", __func__);
 				return -EIO;
 			}
 		} while (1);
@@ -177,11 +256,17 @@ static inline int msg_write(struct device *dev, struct i2c_msg *msg,
 		buf++;
 		len--;
 	}
+#endif
 
 	if ((flags & I2C_MSG_RESTART) == 0) {
 		while (!i2c->isr.bit.stopf);
 		i2c->icr.bit.stop = 1;
 	}
+
+#ifdef CONFIG_I2C_STM32LX_INTERRUPT
+	i2c->cr1.bit.txie = 0;
+	i2c->cr1.bit.nackie = 0;
+#endif
 
 	return 0;
 }
@@ -190,11 +275,21 @@ static inline int msg_read(struct device *dev, struct i2c_msg *msg,
 			   unsigned flags)
 {
 	volatile struct i2c_stm32lx *i2c = I2C_STRUCT(dev);
+#ifdef CONFIG_I2C_STM32LX_INTERRUPT
+	struct i2c_stm32lx_data *data = DEV_DATA(dev);
+#endif
 	unsigned len = msg->len;
 	uint8_t *buf = msg->buf;
 
 	if (len > 255)
 		return -EINVAL;
+
+#ifdef CONFIG_I2C_STM32LX_INTERRUPT
+	data->current.len = len;
+	data->current.buf = buf;
+	data->current.is_err = 0;
+	data->current.is_write = 0;
+#endif
 
 	i2c->cr2.bit.nbytes = len;
 
@@ -206,6 +301,22 @@ static inline int msg_read(struct device *dev, struct i2c_msg *msg,
 	i2c->cr2.bit.reload = 0;
 	i2c->cr2.bit.start = 1;
 
+	while (i2c->cr2.bit.start);
+
+#ifdef CONFIG_I2C_STM32LX_INTERRUPT
+	i2c->cr1.bit.rxie = 1;
+
+	device_sync_call_wait(&data->sync);
+
+	if (data->current.is_err) {
+		i2c->cr1.bit.rxie = 0;
+		if (data->current.is_err)
+			SYS_LOG_DBG("%s: ERR %d", __func__, 
+				    data->current.is_err);
+		data->current.is_err = 0;
+		return -EIO;
+	}
+#else
 	while (len) {
 		while (!i2c->isr.bit.rxne);
 
@@ -214,11 +325,16 @@ static inline int msg_read(struct device *dev, struct i2c_msg *msg,
 		buf++;
 		len--;
 	}
+#endif
 
 	if ((flags & I2C_MSG_RESTART) == 0) {
 		while (!i2c->isr.bit.stopf);
 		i2c->icr.bit.stop = 1;
 	}
+
+#ifdef CONFIG_I2C_STM32LX_INTERRUPT
+	i2c->cr1.bit.rxie = 0;
+#endif
 
 	return 0;
 }
@@ -309,28 +425,30 @@ static int i2c_stm32lx_init(struct device *dev)
 	i2c->pecr.val = 0;
 	i2c->icr.val = 0xFFFFFFFF;
 
-	/* Setup HW */
-	if (i2c_stm32lx_runtime_configure(dev, data->dev_config.raw)) {
-		SYS_LOG_DBG("I2C: Cannot set default configuration 0x%x",
-				data->dev_config.raw);
-		return -EINVAL;
-	}
+	/* Try to Setup HW */
+	i2c_stm32lx_runtime_configure(dev, data->dev_config.raw);
 
-	//cfg->irq_config_func(dev);
+#ifdef CONFIG_I2C_STM32LX_INTERRUPT
+	cfg->irq_config_func(dev);
+#endif
 
 	return 0;
 }
 
 #ifdef CONFIG_I2C_0
 
-//static void i2c_stm32lx_irq_config_func_0(struct device *port);
+#ifdef CONFIG_I2C_STM32LX_INTERRUPT
+static void i2c_stm32lx_irq_config_func_0(struct device *port);
+#endif
 
 static struct i2c_stm32lx_config i2c_stm32lx_cfg_0 = {
 	.base = (uint8_t *)I2C1_ADDR,
 #ifdef CONFIG_SOC_SERIES_STM32L4X
 	.clock_subsys = UINT_TO_POINTER(STM32L4X6_CLOCK_SUBSYS_I2C1),
 #endif
-//	.irq_config_func = i2c_stm32lx_irq_config_func_0,
+#ifdef CONFIG_I2C_STM32LX_INTERRUPT
+	.irq_config_func = i2c_stm32lx_irq_config_func_0,
+#endif
 };
 
 static struct i2c_stm32lx_data i2c_stm32lx_dev_data_0 = {
@@ -342,16 +460,21 @@ DEVICE_AND_API_INIT(i2c_stm32lx_0, CONFIG_I2C_0_NAME, &i2c_stm32lx_init,
 		    SECONDARY, CONFIG_KERNEL_INIT_PRIORITY_DEVICE,
 		    &api_funcs);
 
-/*
+#ifdef CONFIG_I2C_STM32LX_INTERRUPT
 static void i2c_stm32lx_irq_config_func_0(struct device *dev)
 {
 #ifdef CONFIG_SOC_SERIES_STM32L4X
-#define PORT_0_IRQ STM32L4_IRQ_I2C1_EV
+#define PORT_0_EV_IRQ STM32L4_IRQ_I2C1_EV
+#define PORT_0_ER_IRQ STM32L4_IRQ_I2C1_ER
 #endif
-	IRQ_CONNECT(PORT_0_IRQ, CONFIG_I2C_0_IRQ_PRI,
-		i2c_stm32lx_isr, DEVICE_GET(i2c_stm32lx_0), 0);
-	irq_enable(PORT_0_IRQ);
+	IRQ_CONNECT(PORT_0_EV_IRQ, CONFIG_I2C_0_IRQ_PRI,
+		i2c_stm32lx_ev_isr, DEVICE_GET(i2c_stm32lx_0), 0);
+	irq_enable(PORT_0_EV_IRQ);
+
+	IRQ_CONNECT(PORT_0_ER_IRQ, CONFIG_I2C_0_IRQ_PRI,
+		i2c_stm32lx_er_isr, DEVICE_GET(i2c_stm32lx_0), 0);
+	irq_enable(PORT_0_ER_IRQ);
 }
-*/
+#endif
 
 #endif /* CONFIG_I2C_0 */

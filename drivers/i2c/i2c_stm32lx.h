@@ -205,6 +205,15 @@ struct i2c_stm32lx_data {
 	union dev_config dev_config;
 	/* ISR Sync */
 	device_sync_call_t sync;
+	/* Current message data */
+	struct {
+		struct i2c_msg *msg;
+		unsigned len;
+		uint8_t *buf;
+		unsigned is_err;
+		unsigned is_nack;
+		unsigned is_write;
+	} current;
 };
 
 #endif	/* _STM32LX_UART_H_ */
