@@ -54,6 +54,18 @@ static const stm32_pin_func_t pin_pa3_funcs[] = {
 	[STM32L4X6_PINMUX_FUNC_PA3_USART2_RX - 1] = STM32L4X6_PIN_CONFIG_BIAS_HIGH_IMPEDANCE,
 };
 
+static const stm32_pin_func_t pin_pb3_funcs[] = {
+	[STM32L4X6_PINMUX_FUNC_PB3_SPI3_SCK - 1] = STM32L4X6_PIN_CONFIG_PUSH_PULL,
+};
+
+static const stm32_pin_func_t pin_pb4_funcs[] = {
+	[STM32L4X6_PINMUX_FUNC_PB4_SPI3_MISO - 1] = STM32L4X6_PIN_CONFIG_PUSH_PULL,
+};
+
+static const stm32_pin_func_t pin_pb5_funcs[] = {
+	[STM32L4X6_PINMUX_FUNC_PB5_SPI3_MOSI - 1] = STM32L4X6_PIN_CONFIG_PUSH_PULL,
+};
+
 static const stm32_pin_func_t pin_pb6_funcs[] = {
 	[STM32L4X6_PINMUX_FUNC_PB6_I2C1_SCL - 1] = STM32L4X6_PIN_CONFIG_OPEN_DRAIN_PULL_UP,
 };
@@ -82,6 +94,9 @@ static struct stm32_pinmux_conf pins[] = {
 	STM32_PIN_CONF(STM32_PIN_PA3, pin_pa3_funcs),
 	STM32_PIN_CONF(STM32_PIN_PA9, pin_pa9_funcs),
 	STM32_PIN_CONF(STM32_PIN_PA10, pin_pa10_funcs),
+	STM32_PIN_CONF(STM32_PIN_PB3, pin_pb3_funcs),
+	STM32_PIN_CONF(STM32_PIN_PB4, pin_pb4_funcs),
+	STM32_PIN_CONF(STM32_PIN_PB5, pin_pb5_funcs),
 	STM32_PIN_CONF(STM32_PIN_PB6, pin_pb6_funcs),
 	STM32_PIN_CONF(STM32_PIN_PB7, pin_pb7_funcs),
 	STM32_PIN_CONF(STM32_PIN_PB10, pin_pb10_funcs),
