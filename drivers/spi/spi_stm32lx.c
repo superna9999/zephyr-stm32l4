@@ -26,6 +26,7 @@
 
 #include <clock_control/stm32_clock_control.h>
 #include "spi_stm32lx.h"
+#include <drivers/spi/spi_stm32lx.h>
 
 #define SYS_LOG_LEVEL CONFIG_SYS_LOG_SPI_LEVEL
 #include <misc/sys_log.h>
@@ -151,18 +152,36 @@ static int spi_stm32lx_configure(struct device *dev, struct spi_config *config)
 	/* Disable CRC Feature */
 	spi->cr1.bit.crcen = 0;
 
-	/* Disable NSS Software slave management */
-	spi->cr1.bit.ssm = 0;
+	/* Slave Support */
+	if (flags & STM32LX_SPI_SLAVE_MODE) {
+		spi->cr1.bit.mstr = 0;
 
-	/* Change when slave is implemented */
-	spi->cr1.bit.mstr = 1;
+		/* NSS Management */
+		if (flags & STM32LX_SPI_SLAVE_NSS_IGNORE) {
+			spi->cr1.bit.ssm = 1;
+			spi->cr1.bit.ssi = 0;
+		}
+		else
+			spi->cr1.bit.ssm = 0;
+
+		data->current.is_slave = 1;
+	} else {
+		spi->cr1.bit.mstr = 1;
+		spi->cr1.bit.ssm = 0;
+
+		/* NSS Management */
+		if (flags & STM32LX_SPI_MASTER_NSS_IGNORE) {
+			spi->cr2.bit.ssoe = 0;
+		} else {
+			spi->cr2.bit.ssoe = 1;
+			spi->cr2.bit.nssp = 1;
+		}
+
+		data->current.is_slave = 0;
+	}
 
 	/* Setup Data size */
 	spi->cr2.bit.ds = ds;
-
-	/* Manage NSS */
-	spi->cr2.bit.ssoe = 1;
-	spi->cr2.bit.nssp = 1;
 
 	/* Motorola Format */
 	spi->cr2.bit.frf = 0;
@@ -266,10 +285,12 @@ static int spi_stm32lx_transceive(struct device *dev,
 		(void)tmpreg;
 	}
 
-	while(spi->sr.bit.bsy);
+	if (!data->current.is_slave) {
+		while(spi->sr.bit.bsy);
 
-	/* Disable Peripheral */
-	spi->cr1.bit.spe = 0;
+		/* Disable Peripheral */
+		spi->cr1.bit.spe = 0;
+	}
 
 	return 0;
 }
@@ -353,3 +374,79 @@ static void spi_stm32lx_irq_config_func_0(struct device *dev)
 #endif
 
 #endif /* CONFIG_SPI_0 */
+
+#ifdef CONFIG_SPI_1
+
+#ifdef CONFIG_SPI_STM32LX_INTERRUPT
+static void spi_stm32lx_irq_config_func_1(struct device *port);
+#endif
+
+static struct spi_stm32lx_config spi_stm32lx_cfg_1 = {
+	.base = (uint8_t *)SPI2_ADDR,
+#ifdef CONFIG_SOC_SERIES_STM32L4X
+	.clock_subsys = UINT_TO_POINTER(STM32L4X6_CLOCK_SUBSYS_SPI2),
+#endif
+#ifdef CONFIG_SPI_STM32LX_INTERRUPT
+	.irq_config_func = spi_stm32lx_irq_config_func_1,
+#endif
+};
+
+static struct spi_stm32lx_data spi_stm32lx_dev_data_1 = {
+};
+
+DEVICE_AND_API_INIT(spi_stm32lx_1, CONFIG_SPI_1_NAME, &spi_stm32lx_init,
+		    &spi_stm32lx_dev_data_1, &spi_stm32lx_cfg_1,
+		    SECONDARY, CONFIG_KERNEL_INIT_PRIORITY_DEVICE,
+		    &api_funcs);
+
+#ifdef CONFIG_SPI_STM32LX_INTERRUPT
+static void spi_stm32lx_irq_config_func_1(struct device *dev)
+{
+#ifdef CONFIG_SOC_SERIES_STM32L4X
+#define PORT_1_IRQ STM32L4_IRQ_SPI2
+#endif
+	IRQ_CONNECT(PORT_1_IRQ, CONFIG_SPI_1_IRQ_PRI,
+		spi_stm32lx_isr, DEVICE_GET(spi_stm32lx_1), 0);
+	irq_enable(PORT_1_IRQ);
+}
+#endif
+
+#endif /* CONFIG_SPI_1 */
+
+#ifdef CONFIG_SPI_2
+
+#ifdef CONFIG_SPI_STM32LX_INTERRUPT
+static void spi_stm32lx_irq_config_func_2(struct device *port);
+#endif
+
+static struct spi_stm32lx_config spi_stm32lx_cfg_2 = {
+	.base = (uint8_t *)SPI3_ADDR,
+#ifdef CONFIG_SOC_SERIES_STM32L4X
+	.clock_subsys = UINT_TO_POINTER(STM32L4X6_CLOCK_SUBSYS_SPI3),
+#endif
+#ifdef CONFIG_SPI_STM32LX_INTERRUPT
+	.irq_config_func = spi_stm32lx_irq_config_func_2,
+#endif
+};
+
+static struct spi_stm32lx_data spi_stm32lx_dev_data_2 = {
+};
+
+DEVICE_AND_API_INIT(spi_stm32lx_2, CONFIG_SPI_2_NAME, &spi_stm32lx_init,
+		    &spi_stm32lx_dev_data_2, &spi_stm32lx_cfg_2,
+		    SECONDARY, CONFIG_KERNEL_INIT_PRIORITY_DEVICE,
+		    &api_funcs);
+
+#ifdef CONFIG_SPI_STM32LX_INTERRUPT
+static void spi_stm32lx_irq_config_func_2(struct device *dev)
+{
+#ifdef CONFIG_SOC_SERIES_STM32L4X
+#define PORT_2_IRQ STM32L4_IRQ_SPI3
+#endif
+	IRQ_CONNECT(PORT_2_IRQ, CONFIG_SPI_2_IRQ_PRI,
+		spi_stm32lx_isr, DEVICE_GET(spi_stm32lx_2), 0);
+	irq_enable(PORT_2_IRQ);
+}
+#endif
+
+#endif /* CONFIG_SPI_2 */

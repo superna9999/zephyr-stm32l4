@@ -105,6 +105,7 @@ struct spi_stm32lx_data {
 	device_sync_call_t sync;
 	/* Current message data */
 	struct {
+		unsigned is_slave;
 		unsigned is_ds_16;
 		unsigned rx_len;
 		uint8_t *rx_buf;
