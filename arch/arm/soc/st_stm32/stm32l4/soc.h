@@ -50,6 +50,11 @@
 #define I2C2_ADDR	      (APB1PERIPH_BASE + 0x5800)
 #define I2C3_ADDR	      (APB1PERIPH_BASE + 0x5C00)
 
+/* SPI */
+#define SPI1_ADDR	      (APB2PERIPH_BASE + 0x3000)
+#define SPI2_ADDR	      (APB1PERIPH_BASE + 0x3800)
+#define SPI3_ADDR	      (APB1PERIPH_BASE + 0x3C00)
+
 /* Reset and Clock Control */
 #define RCC_BASE              (AHB1PERIPH_BASE + 0x1000)
 
