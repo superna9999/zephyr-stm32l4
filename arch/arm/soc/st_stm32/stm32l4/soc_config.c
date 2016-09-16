@@ -22,6 +22,22 @@
 #include <pinmux/stm32/pinmux_stm32.h>
 #include <drivers/clock_control/stm32_clock_control.h>
 
+static const stm32_pin_func_t pin_pa4_funcs[] = {
+	[STM32L4X6_PINMUX_FUNC_PA4_SPI1_NSS - 1] = STM32L4X6_PIN_CONFIG_PUSH_PULL_PULL_UP,
+};
+
+static const stm32_pin_func_t pin_pa5_funcs[] = {
+	[STM32L4X6_PINMUX_FUNC_PA5_SPI1_SCK - 1] = STM32L4X6_PIN_CONFIG_PUSH_PULL_PULL_DOWN,
+};
+
+static const stm32_pin_func_t pin_pa6_funcs[] = {
+	[STM32L4X6_PINMUX_FUNC_PA6_SPI1_MISO - 1] = STM32L4X6_PIN_CONFIG_PUSH_PULL,
+};
+
+static const stm32_pin_func_t pin_pa7_funcs[] = {
+	[STM32L4X6_PINMUX_FUNC_PA7_SPI1_MOSI - 1] = STM32L4X6_PIN_CONFIG_PUSH_PULL,
+};
+
 static const stm32_pin_func_t pin_pa9_funcs[] = {
 	[STM32L4X6_PINMUX_FUNC_PA9_USART1_TX - 1] = STM32L4X6_PIN_CONFIG_PUSH_PULL,
 };
@@ -58,6 +74,10 @@ static const stm32_pin_func_t pin_pb11_funcs[] = {
  * @brief pin configuration
  */
 static struct stm32_pinmux_conf pins[] = {
+	STM32_PIN_CONF(STM32_PIN_PA4, pin_pa4_funcs),
+	STM32_PIN_CONF(STM32_PIN_PA5, pin_pa5_funcs),
+	STM32_PIN_CONF(STM32_PIN_PA6, pin_pa6_funcs),
+	STM32_PIN_CONF(STM32_PIN_PA7, pin_pa7_funcs),
 	STM32_PIN_CONF(STM32_PIN_PA2, pin_pa2_funcs),
 	STM32_PIN_CONF(STM32_PIN_PA3, pin_pa3_funcs),
 	STM32_PIN_CONF(STM32_PIN_PA9, pin_pa9_funcs),
