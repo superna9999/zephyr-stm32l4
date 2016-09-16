@@ -27,7 +27,7 @@ static const stm32_pin_func_t pin_pa4_funcs[] = {
 };
 
 static const stm32_pin_func_t pin_pa5_funcs[] = {
-	[STM32L4X6_PINMUX_FUNC_PA5_SPI1_SCK - 1] = STM32L4X6_PIN_CONFIG_PUSH_PULL_PULL_DOWN,
+	[STM32L4X6_PINMUX_FUNC_PA5_SPI1_SCK - 1] = STM32L4X6_PIN_CONFIG_PUSH_PULL_PULL_UP,
 };
 
 static const stm32_pin_func_t pin_pa6_funcs[] = {
@@ -55,7 +55,7 @@ static const stm32_pin_func_t pin_pa3_funcs[] = {
 };
 
 static const stm32_pin_func_t pin_pb3_funcs[] = {
-	[STM32L4X6_PINMUX_FUNC_PB3_SPI3_SCK - 1] = STM32L4X6_PIN_CONFIG_PUSH_PULL,
+	[STM32L4X6_PINMUX_FUNC_PB3_SPI3_SCK - 1] = STM32L4X6_PIN_CONFIG_PUSH_PULL_PULL_UP,
 };
 
 static const stm32_pin_func_t pin_pb4_funcs[] = {
